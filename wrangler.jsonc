@@ -1,0 +1,15 @@
+{
+  "name": "tacticdev-site",
+  "main": "src/worker.ts",
+  "compatibility_date": "2024-10-01",
+  "account_id": "450c0f114d19457f974bafc029eafef3",
+
+  "r2_buckets": [
+    { "binding": "ASSETS", "bucket_name": "tacticdev-assets" }
+  ],
+  "vars": { "BUCKET_PREFIX": "tacticdev_site" },
+  "routes": [
+    { "pattern": "tacticdev.com/*", "zone_name": "tacticdev.com" },
+    { "pattern": "www.tacticdev.com/*", "zone_name": "tacticdev.com" }
+  ]
+}
