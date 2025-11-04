@@ -2,6 +2,7 @@
   "name": "tacticdev-site",
   "version": "1.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "start": "wrangler dev",
     "deploy": "wrangler deploy"
