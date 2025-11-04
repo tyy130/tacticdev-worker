@@ -10,6 +10,7 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
     />
     
     <!-- Open Graph / Social Media Meta Tags -->
+    <!-- Note: og-image.png should be 1200x630px and served from static assets -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tacticdev.com/" />
     <meta property="og:title" content="TacticDev · High-velocity product teams for ambitious founders" />

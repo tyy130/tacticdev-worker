@@ -91,6 +91,26 @@ The contact form endpoint (`POST /contact`) includes:
 - Email regex validation
 - Success/error response handling
 
+## Social Media & SEO
+
+### Open Graph Image
+
+The site references an Open Graph image at `/og-image.png` for social media sharing. This image should be:
+
+- **Size**: 1200×630 pixels (recommended for optimal display)
+- **Format**: PNG or JPEG
+- **Content**: TacticDev branding, tagline, or visual representation
+- **Location**: Served from the worker's static assets or R2 bucket
+
+**Note**: Until the og-image.png is created, social media platforms will not display a preview image when the site is shared. This doesn't affect site functionality but improves social engagement.
+
+### Meta Tags Included
+
+- Open Graph tags for Facebook, LinkedIn sharing
+- Twitter Card tags for Twitter/X sharing  
+- Canonical URL
+- Author and robots meta tags
+
 ## Configuration
 
 Edit `wrangler.jsonc` to configure:
