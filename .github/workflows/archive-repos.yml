@@ -27,6 +27,9 @@ jobs:
 
       - name: Archive unused repositories
         env:
+          # Note: GITHUB_TOKEN doesn't have permission to archive repos.
+          # For actual archival (dry_run=false), you need to create a PAT with 'repo' scope
+          # and add it as REPO_ADMIN_TOKEN secret, then use: ${{ secrets.REPO_ADMIN_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
         run: |

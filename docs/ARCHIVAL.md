@@ -19,6 +19,16 @@ A repository will be considered for archival if:
 
 A GitHub Action workflow runs automatically on the 1st of each month to identify repositories that meet the archival criteria. By default, it runs in **dry-run mode** and only reports what would be archived.
 
+#### Setup for Actual Archival
+
+To enable the workflow to actually archive repositories (not just dry-run), you need to:
+
+1. Create a [Personal Access Token (PAT)](https://github.com/settings/tokens/new) with `repo` scope
+2. Add it as a repository secret named `REPO_ADMIN_TOKEN`
+3. Update the workflow to use `${{ secrets.REPO_ADMIN_TOKEN }}` instead of `${{ secrets.GITHUB_TOKEN }}`
+
+**Note**: The default `GITHUB_TOKEN` only has read permissions and cannot archive repositories.
+
 #### Manual Trigger
 
 You can manually trigger the workflow from the GitHub Actions tab:
@@ -27,7 +37,7 @@ You can manually trigger the workflow from the GitHub Actions tab:
 2. Click **Run workflow**
 3. Choose dry run mode:
    - `true` (default): Only report what would be archived
-   - `false`: Actually archive the repositories
+   - `false`: Actually archive the repositories (requires PAT setup)
 
 ### Manual Script
 
