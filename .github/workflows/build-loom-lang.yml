@@ -1,0 +1,116 @@
+name: Build Loom Lang
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-loom-lang.yml'
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [loom-lang-updated]
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: loom-linux-x64
+            asset_name: loom-linux-x64
+          - os: macos-latest
+            artifact_name: loom-macos-x64
+            asset_name: loom-macos-x64
+          - os: windows-latest
+            artifact_name: loom-windows-x64.exe
+            asset_name: loom-windows-x64.exe
+
+    steps:
+      - name: Checkout loom-lang
+        uses: actions/checkout@v4
+        with:
+          repository: Tactic-Dev/loom-lang
+          path: loom-lang
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: loom-lang/requirements.txt
+
+      - name: Install dependencies
+        working-directory: loom-lang
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build with PyInstaller (Unix)
+        if: matrix.os != 'windows-latest'
+        working-directory: loom-lang
+        run: |
+          pyinstaller --onefile --name loom loom.py
+
+      - name: Build with PyInstaller (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: loom-lang
+        run: |
+          pyinstaller --onefile --name loom loom.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            loom-lang/dist/loom${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+          retention-days: 90
+
+  upload-to-r2:
+    name: Upload to Cloudflare R2
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: loom-linux-x64
+          path: artifacts/linux
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: loom-macos-x64
+          path: artifacts/macos
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: loom-windows-x64.exe
+          path: artifacts/windows
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Upload to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Upload Linux binary
+          wrangler r2 object put tacticdev-assets/downloads/loom-lang/latest/loom-linux-x64 \
+            --file=artifacts/linux/loom \
+            --content-type=application/octet-stream
+
+          # Upload macOS binary
+          wrangler r2 object put tacticdev-assets/downloads/loom-lang/latest/loom-macos-x64 \
+            --file=artifacts/macos/loom \
+            --content-type=application/octet-stream
+
+          # Upload Windows binary
+          wrangler r2 object put tacticdev-assets/downloads/loom-lang/latest/loom-windows-x64.exe \
+            --file=artifacts/windows/loom.exe \
+            --content-type=application/octet-stream
