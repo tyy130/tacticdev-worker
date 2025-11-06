@@ -104,6 +104,7 @@ while IFS= read -r repo; do
   fi
   
   # Check if repo has 0 stars and hasn't been updated in 12 months
+  # Note: ISO 8601 date strings (YYYY-MM-DDTHH:MM:SSZ) support lexicographic comparison
   if [ "$STARS" -eq 0 ] && [ "$UPDATED_AT" \< "$TWELVE_MONTHS_AGO" ]; then
     VISIBILITY="public"
     if [ "$IS_PRIVATE" = "true" ]; then
@@ -118,12 +119,11 @@ while IFS= read -r repo; do
     
     if [ "$DRY_RUN" = "false" ]; then
       echo "   🗃️  Archiving..."
-      ERROR_OUTPUT=$(gh api \
+      if ERROR_OUTPUT=$(gh api \
         --method PATCH \
         -H "Accept: application/vnd.github+json" \
         "repos/$OWNER/$REPO_NAME" \
-        -f archived=true 2>&1)
-      if [ $? -eq 0 ]; then
+        -f archived=true 2>&1); then
         echo "   ✅ Archived!"
       else
         echo "   ❌ Failed to archive: $ERROR_OUTPUT"
@@ -135,6 +135,7 @@ while IFS= read -r repo; do
     ((ARCHIVED_COUNT++))
     echo ""
   else
+    # Note: ISO 8601 date strings support lexicographic comparison
     if [ "$STARS" -gt 0 ] || [ "$UPDATED_AT" \> "$TWELVE_MONTHS_AGO" ]; then
       # Only show details for repos we're keeping for a specific reason
       echo "✓ Keeping $REPO_NAME (Stars: $STARS, Updated: $UPDATED_AT)"
