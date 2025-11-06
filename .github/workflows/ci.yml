@@ -26,5 +26,5 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build check
-        run: npx wrangler deploy --dry-run
+      - name: Type check
+        run: npx tsc --noEmit
