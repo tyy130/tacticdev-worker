@@ -158,7 +158,9 @@ describe('TacticDev marketing site worker', () => {
                         expect(await response.text()).toContain('Thanks');
                 });
 
-                it('handles malformed form data', async () => {
+                it('rejects when form data is parsed but fields are missing', async () => {
+                        // Even with non-standard encoding, formData() parsing usually succeeds
+                        // but results in empty/missing fields, triggering validation error (422)
                         const request = new IncomingRequest('http://example.com/contact', {
                                 method: 'POST',
                                 headers: {
