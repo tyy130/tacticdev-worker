@@ -9,3 +9,10 @@ The static marketing site has been split into its own repository: [tacticdev-sit
 The site was moved as a clean split (no preserved history) and is now maintained under that repository.
 
 If you manage deployments or CI for the site, please use the `tacticdev-site` repository. This monorepo focuses on the worker/chat services.
+
+## Repository Maintenance
+
+This repository includes automation to archive unused GitHub repositories. See [docs/ARCHIVAL.md](docs/ARCHIVAL.md) for details on:
+- Automatic archival of repositories not updated in 12 months with zero stars
+- How to manually trigger archival
+- How to customize the archival criteria

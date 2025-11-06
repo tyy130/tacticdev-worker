@@ -1,0 +1,108 @@
+name: Archive Unused Repositories
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not actually archive)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+  schedule:
+    # Run on the 1st of every month at 00:00 UTC
+    - cron: '0 0 1 * *'
+
+jobs:
+  archive-repos:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Archive unused repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+        run: |
+          #!/bin/bash
+          set -e
+          
+          # Configuration
+          OWNER="tyy130"
+          MONTHS_INACTIVE=12
+          
+          # Calculate the date 12 months ago
+          TWELVE_MONTHS_AGO=$(date -u -d "12 months ago" +%Y-%m-%dT%H:%M:%SZ)
+          
+          echo "🔍 Scanning repositories for $OWNER..."
+          echo "📅 Looking for repos not updated since: $TWELVE_MONTHS_AGO"
+          echo "🏃 Dry run mode: $DRY_RUN"
+          echo ""
+          
+          # Get all repositories for the user
+          REPOS=$(gh api "users/$OWNER/repos?per_page=100&type=owner" --jq '.[] | {name: .name, stars: .stargazers_count, updated_at: .updated_at, archived: .archived}')
+          
+          # Process each repository
+          ARCHIVED_COUNT=0
+          SKIPPED_COUNT=0
+          
+          while IFS= read -r repo; do
+            REPO_NAME=$(echo "$repo" | jq -r '.name')
+            STARS=$(echo "$repo" | jq -r '.stars')
+            UPDATED_AT=$(echo "$repo" | jq -r '.updated_at')
+            IS_ARCHIVED=$(echo "$repo" | jq -r '.archived')
+            
+            # Skip if already archived
+            if [ "$IS_ARCHIVED" = "true" ]; then
+              echo "⏭️  Skipping $REPO_NAME (already archived)"
+              ((SKIPPED_COUNT++))
+              continue
+            fi
+            
+            # Check if repo has 0 stars and hasn't been updated in 12 months
+            if [ "$STARS" -eq 0 ] && [ "$UPDATED_AT" \< "$TWELVE_MONTHS_AGO" ]; then
+              echo "📦 Found candidate for archival: $REPO_NAME"
+              echo "   Stars: $STARS"
+              echo "   Last updated: $UPDATED_AT"
+              
+              if [ "$DRY_RUN" = "false" ]; then
+                echo "   🗃️  Archiving..."
+                gh api \
+                  --method PATCH \
+                  -H "Accept: application/vnd.github+json" \
+                  "repos/$OWNER/$REPO_NAME" \
+                  -f archived=true
+                echo "   ✅ Archived!"
+              else
+                echo "   ℹ️  Would archive (dry run mode)"
+              fi
+              
+              ((ARCHIVED_COUNT++))
+            else
+              echo "✓ Keeping $REPO_NAME (Stars: $STARS, Updated: $UPDATED_AT)"
+              ((SKIPPED_COUNT++))
+            fi
+            
+          done < <(echo "$REPOS" | jq -c '.')
+          
+          echo ""
+          echo "📊 Summary:"
+          echo "   Repositories processed: $((ARCHIVED_COUNT + SKIPPED_COUNT))"
+          echo "   Repositories archived/would archive: $ARCHIVED_COUNT"
+          echo "   Repositories kept: $SKIPPED_COUNT"
+          
+          if [ "$DRY_RUN" = "true" ]; then
+            echo ""
+            echo "ℹ️  This was a dry run. To actually archive repositories, run with dry_run=false"
+          fi
