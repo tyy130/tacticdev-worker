@@ -117,7 +117,7 @@ while IFS= read -r repo; do
     
     CANDIDATES+=("$OWNER/$REPO_NAME")
     
-    if [ "$DRY_RUN" = "false" ]; then
+    if [[ "$DRY_RUN" = "false" ]]; then
       echo "   🗃️  Archiving..."
       if ERROR_OUTPUT=$(gh api \
         --method PATCH \
@@ -152,7 +152,7 @@ echo "   Repositories processed: $((ARCHIVED_COUNT + SKIPPED_COUNT))"
 echo "   Repositories archived/would archive: $ARCHIVED_COUNT"
 echo "   Repositories kept: $SKIPPED_COUNT"
 
-if [ $ARCHIVED_COUNT -gt 0 ]; then
+if [[ "$ARCHIVED_COUNT" -gt 0 ]]; then
   echo ""
   echo "📦 Repositories identified for archival:"
   for repo in "${CANDIDATES[@]}"; do
@@ -160,7 +160,7 @@ if [ $ARCHIVED_COUNT -gt 0 ]; then
   done
 fi
 
-if [ "$DRY_RUN" = "true" ]; then
+if [[ "$DRY_RUN" = "true" ]]; then
   echo ""
   echo "ℹ️  This was a dry run. To actually archive repositories, run with --no-dry-run"
 fi
