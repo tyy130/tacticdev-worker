@@ -135,7 +135,6 @@ while IFS= read -r repo; do
     ((ARCHIVED_COUNT++))
     echo ""
   else
-    # Note: ISO 8601 date strings support lexicographic comparison
     if [[ "$STARS" -gt 0 || "$UPDATED_AT" > "$TWELVE_MONTHS_AGO" ]]; then
       # Only show details for repos we're keeping for a specific reason
       echo "✓ Keeping $REPO_NAME (Stars: $STARS, Updated: $UPDATED_AT)"
