@@ -25,11 +25,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Archive unused repositories
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,8 +45,8 @@ jobs:
           echo "🏃 Dry run mode: $DRY_RUN"
           echo ""
           
-          # Get all repositories for the user
-          REPOS=$(gh api "users/$OWNER/repos?per_page=100&type=owner" --jq '.[] | {name: .name, stars: .stargazers_count, updated_at: .updated_at, archived: .archived}')
+          # Get all repositories for the user (with pagination)
+          REPOS=$(gh api --paginate "users/$OWNER/repos?per_page=100&type=owner" --jq '.[] | {name: .name, stars: .stargazers_count, updated_at: .updated_at, archived: .archived}')
           
           # Process each repository
           ARCHIVED_COUNT=0
@@ -78,12 +73,16 @@ jobs:
               
               if [ "$DRY_RUN" = "false" ]; then
                 echo "   🗃️  Archiving..."
-                gh api \
+                ERROR_OUTPUT=$(gh api \
                   --method PATCH \
                   -H "Accept: application/vnd.github+json" \
                   "repos/$OWNER/$REPO_NAME" \
-                  -f archived=true
-                echo "   ✅ Archived!"
+                  -f archived=true 2>&1)
+                if [ $? -eq 0 ]; then
+                  echo "   ✅ Archived!"
+                else
+                  echo "   ❌ Failed to archive: $ERROR_OUTPUT"
+                fi
               else
                 echo "   ℹ️  Would archive (dry run mode)"
               fi

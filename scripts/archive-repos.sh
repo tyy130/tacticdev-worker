@@ -76,9 +76,9 @@ echo "📅 Looking for repos not updated since: $TWELVE_MONTHS_AGO"
 echo "🏃 Dry run mode: $DRY_RUN"
 echo ""
 
-# Get all repositories for the user
+# Get all repositories for the user (with pagination)
 echo "📥 Fetching repositories..."
-REPOS=$(gh api "users/$OWNER/repos?per_page=100&type=owner" --jq '.[] | {name: .name, stars: .stargazers_count, updated_at: .updated_at, archived: .archived, private: .private}')
+REPOS=$(gh api --paginate "users/$OWNER/repos?per_page=100&type=owner" --jq '.[] | {name: .name, stars: .stargazers_count, updated_at: .updated_at, archived: .archived, private: .private}')
 
 # Process each repository
 ARCHIVED_COUNT=0
@@ -118,14 +118,15 @@ while IFS= read -r repo; do
     
     if [ "$DRY_RUN" = "false" ]; then
       echo "   🗃️  Archiving..."
-      if gh api \
+      ERROR_OUTPUT=$(gh api \
         --method PATCH \
         -H "Accept: application/vnd.github+json" \
         "repos/$OWNER/$REPO_NAME" \
-        -f archived=true > /dev/null 2>&1; then
+        -f archived=true 2>&1)
+      if [ $? -eq 0 ]; then
         echo "   ✅ Archived!"
       else
-        echo "   ❌ Failed to archive (check permissions)"
+        echo "   ❌ Failed to archive: $ERROR_OUTPUT"
       fi
     else
       echo "   ℹ️  Would archive (dry run mode)"
