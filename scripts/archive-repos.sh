@@ -97,7 +97,7 @@ while IFS= read -r repo; do
   IS_PRIVATE=$(echo "$repo" | jq -r '.private')
   
   # Skip if already archived
-  if [ "$IS_ARCHIVED" = "true" ]; then
+  if [[ "$IS_ARCHIVED" == "true" ]]; then
     echo "⏭️  Skipping $REPO_NAME (already archived)"
     ((SKIPPED_COUNT++))
     continue
@@ -105,9 +105,9 @@ while IFS= read -r repo; do
   
   # Check if repo has 0 stars and hasn't been updated in 12 months
   # Note: ISO 8601 date strings (YYYY-MM-DDTHH:MM:SSZ) support lexicographic comparison
-  if [ "$STARS" -eq 0 ] && [[ "$UPDATED_AT" < "$TWELVE_MONTHS_AGO" ]]; then
+  if [[ "$STARS" -eq 0 && "$UPDATED_AT" < "$TWELVE_MONTHS_AGO" ]]; then
     VISIBILITY="public"
-    if [ "$IS_PRIVATE" = "true" ]; then
+    if [[ "$IS_PRIVATE" == "true" ]]; then
       VISIBILITY="private"
     fi
     
@@ -136,7 +136,7 @@ while IFS= read -r repo; do
     echo ""
   else
     # Note: ISO 8601 date strings support lexicographic comparison
-    if [ "$STARS" -gt 0 ] || [[ "$UPDATED_AT" > "$TWELVE_MONTHS_AGO" ]]; then
+    if [[ "$STARS" -gt 0 || "$UPDATED_AT" > "$TWELVE_MONTHS_AGO" ]]; then
       # Only show details for repos we're keeping for a specific reason
       echo "✓ Keeping $REPO_NAME (Stars: $STARS, Updated: $UPDATED_AT)"
       ((SKIPPED_COUNT++))
