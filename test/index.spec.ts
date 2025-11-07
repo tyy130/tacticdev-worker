@@ -19,6 +19,7 @@ describe('TacticDev marketing site worker', () => {
                 expect(html).toContain('Product teams that ship clean, modern software at founder speed.');
                 expect(html).toContain('Build momentum with an integrated product squad.');
                 expect(html).toContain('Tell us what you need to ship next.');
+                expect(html).toContain('Loom Lang');
         });
 
         it('handles contact form submissions', async () => {
@@ -173,5 +174,11 @@ describe('TacticDev marketing site worker', () => {
                         expect(response.status).toBe(422);
                         expect(await response.text()).toContain('Please complete all fields correctly');
                 });
+        });
+
+        it('returns 404 for invalid loom-lang download paths', async () => {
+                const request = new IncomingRequest('http://example.com/downloads/loom-lang/invalid-file');
+                const response = await worker.fetch(request, env, createExecutionContext());
+                expect(response.status).toBe(404);
         });
 });
