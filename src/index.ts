@@ -873,12 +873,12 @@ export default {
       const url = new URL(request.url);
 
       if (request.method === 'POST' && url.pathname === '/contact') {
-        return await handleContact(request);
+        return handleContact(request);
       }
 
       // Handle loom-lang downloads
       if (request.method === 'GET' && url.pathname.startsWith('/downloads/loom-lang/')) {
-        return await handleLoomDownload(request, env);
+        return handleLoomDownload(request, env);
       }
 
       // Error reporting endpoint
