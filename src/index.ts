@@ -1,7 +1,13 @@
+import { ErrorTracker, DocumentationFetcher } from './error-tracker';
+
 interface Env {
   ASSETS: R2Bucket;
   BUCKET_PREFIX: string;
 }
+
+// Global error tracker instance (in production, use Durable Objects or KV)
+const errorTracker = new ErrorTracker(3); // Threshold of 3 occurrences
+const docFetcher = new DocumentationFetcher();
 
 const HOMEPAGE_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -863,49 +869,94 @@ const okHeaders = new Headers({
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
-    if (request.method === 'POST' && url.pathname === '/contact') {
-      return handleContact(request);
-    }
-
-    // Handle loom-lang downloads
-    if (request.method === 'GET' && url.pathname.startsWith('/downloads/loom-lang/')) {
-      return handleLoomDownload(request, env);
-    }
-
-    if (request.method === 'GET' || request.method === 'HEAD') {
-      if (request.method === 'HEAD') {
-        return new Response(null, { status: 200, headers: okHeaders });
+      if (request.method === 'POST' && url.pathname === '/contact') {
+        return handleContact(request);
       }
-      return new Response(HOMEPAGE_HTML, { status: 200, headers: okHeaders });
-    }
 
-    return new Response('Not found', { status: 404 });
+      // Handle loom-lang downloads
+      if (request.method === 'GET' && url.pathname.startsWith('/downloads/loom-lang/')) {
+        return handleLoomDownload(request, env);
+      }
+
+      // Error reporting endpoint
+      if (request.method === 'GET' && url.pathname === '/api/errors') {
+        return handleErrorReport(request);
+      }
+
+      if (request.method === 'GET' || request.method === 'HEAD') {
+        if (request.method === 'HEAD') {
+          return new Response(null, { status: 200, headers: okHeaders });
+        }
+        return new Response(HOMEPAGE_HTML, { status: 200, headers: okHeaders });
+      }
+
+      return new Response('Not found', { status: 404 });
+    } catch (error) {
+      // Track any unhandled errors
+      const err = error instanceof Error ? error : new Error(String(error));
+      const record = errorTracker.track(err, { path: new URL(request.url).pathname });
+      
+      // If this error is frequent, log documentation
+      if (errorTracker.isFrequent(record.fingerprint)) {
+        console.warn(`Frequent error detected (${record.count} occurrences):`, record.message);
+        
+        // Fetch and log documentation
+        const docs = await docFetcher.fetchDocumentation(record);
+        if (docs.length > 0) {
+          console.log('Relevant documentation:');
+          docs.slice(0, 3).forEach(doc => {
+            console.log(`- ${doc.source}: ${doc.url}`);
+          });
+        }
+      }
+      
+      return new Response('Internal server error', { status: 500 });
+    }
   }
 } satisfies ExportedHandler<Env>;
 
 async function handleContact(request: Request): Promise<Response> {
-  const formData = await request.formData().catch(() => null);
-  if (!formData) {
+  try {
+    const formData = await request.formData().catch(() => null);
+    if (!formData) {
+      return new Response('Please complete all fields correctly.', { status: 400 });
+    }
+
+    const honeypot = String(formData.get('hp_field') || '').trim();
+    if (honeypot) {
+      return new Response('Thanks — we will reply shortly.', { status: 200 });
+    }
+
+    const name = String(formData.get('name') || '').trim();
+    const email = String(formData.get('email') || '').trim();
+    const message = String(formData.get('message') || '').trim();
+
+    const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    if (!name || !message || !emailRegex.test(email)) {
+      return new Response('Please complete all fields correctly.', { status: 422 });
+    }
+
+    return new Response('Thanks — we will reply shortly.', { status: 200 });
+  } catch (error) {
+    // Track contact form errors
+    const err = error instanceof Error ? error : new Error(String(error));
+    const record = errorTracker.track(err, { handler: 'contact' });
+    
+    // If frequent, fetch documentation
+    if (errorTracker.isFrequent(record.fingerprint)) {
+      console.warn(`Frequent contact form error (${record.count} occurrences):`, record.message);
+      const docs = await docFetcher.fetchDocumentation(record);
+      if (docs.length > 0) {
+        console.log('Suggested documentation:');
+        docs.slice(0, 3).forEach(doc => console.log(`- ${doc.source}: ${doc.url}`));
+      }
+    }
+    
     return new Response('Please complete all fields correctly.', { status: 400 });
   }
-
-  const honeypot = String(formData.get('hp_field') || '').trim();
-  if (honeypot) {
-    return new Response('Thanks — we will reply shortly.', { status: 200 });
-  }
-
-  const name = String(formData.get('name') || '').trim();
-  const email = String(formData.get('email') || '').trim();
-  const message = String(formData.get('message') || '').trim();
-
-  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-  if (!name || !message || !emailRegex.test(email)) {
-    return new Response('Please complete all fields correctly.', { status: 422 });
-  }
-
-  return new Response('Thanks — we will reply shortly.', { status: 200 });
 }
 
 async function handleLoomDownload(request: Request, env: Env): Promise<Response> {
@@ -944,7 +995,57 @@ async function handleLoomDownload(request: Request, env: Env): Promise<Response>
 
     return new Response(object.body, { status: 200, headers });
   } catch (error) {
+    // Track R2 errors
+    const err = error instanceof Error ? error : new Error(String(error));
+    const record = errorTracker.track(err, { handler: 'loom-download', path });
+    
     console.error('Error fetching from R2:', error);
+    
+    // If frequent, fetch documentation
+    if (errorTracker.isFrequent(record.fingerprint)) {
+      console.warn(`Frequent R2 error (${record.count} occurrences):`, record.message);
+      const docs = await docFetcher.fetchDocumentation(record);
+      if (docs.length > 0) {
+        console.log('Suggested documentation:');
+        docs.slice(0, 3).forEach(doc => console.log(`- ${doc.source}: ${doc.url}`));
+      }
+    }
+    
     return new Response('Internal server error', { status: 500 });
   }
+}
+
+/**
+ * Handle error reporting endpoint
+ * Returns all tracked errors with documentation links
+ */
+function handleErrorReport(request: Request): Response {
+  const url = new URL(request.url);
+  const showAll = url.searchParams.get('all') === 'true';
+  
+  const errors = showAll ? errorTracker.getAllErrors() : errorTracker.getFrequentErrors();
+  
+  const report = {
+    timestamp: new Date().toISOString(),
+    threshold: 3,
+    totalErrors: errorTracker.getAllErrors().length,
+    frequentErrors: errorTracker.getFrequentErrors().length,
+    errors: errors.map(error => ({
+      fingerprint: error.fingerprint,
+      message: error.message,
+      count: error.count,
+      firstSeen: new Date(error.firstSeen).toISOString(),
+      lastSeen: new Date(error.lastSeen).toISOString(),
+      context: error.context,
+      isFrequent: error.count >= 3
+    }))
+  };
+  
+  return new Response(JSON.stringify(report, null, 2), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    }
+  });
 }

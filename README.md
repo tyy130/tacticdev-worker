@@ -7,6 +7,17 @@ This repository contains the backend and chat application code for the tacticdev
 - **Marketing Site**: Serves the TacticDev marketing website
 - **Contact Form**: Handles customer inquiries
 - **Loom Lang Distribution**: Provides download access to Loom Lang binaries
+- **Error Tracking & Documentation**: Automatically identifies frequent errors and provides relevant documentation links
+
+## Error Tracking System
+
+The worker includes an intelligent error tracking system that:
+- Identifies errors that occur frequently (configurable threshold)
+- Automatically searches for relevant documentation from Cloudflare, MDN, and Stack Overflow
+- Provides an API endpoint (`/api/errors`) to view error reports
+- Logs documentation links when frequent errors are detected
+
+See [ERROR-TRACKING.md](ERROR-TRACKING.md) for detailed documentation.
 
 ## Loom Lang
 
