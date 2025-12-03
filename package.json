@@ -2,12 +2,18 @@
   "name": "tacticdev-site",
   "version": "1.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "start": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.26",
     "@cloudflare/workers-types": "^4.20241011.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.9",
+    "wrangler": "^3.114.15"
   }
 }

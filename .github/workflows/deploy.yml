@@ -24,12 +24,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: Install Wrangler
-        run: npm i -g wrangler@4
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Print Wrangler version
-        run: wrangler --version
+      - name: Run tests
+        run: npm test
 
       - name: Deploy to Cloudflare
-        run: wrangler deploy
+        run: npx wrangler deploy

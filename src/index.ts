@@ -1,3 +1,14 @@
+import { ErrorTracker, DocumentationFetcher } from './error-tracker';
+
+interface Env {
+  ASSETS: R2Bucket;
+  BUCKET_PREFIX: string;
+}
+
+// Global error tracker instance (in production, use Durable Objects or KV)
+const errorTracker = new ErrorTracker(3); // Threshold of 3 occurrences
+const docFetcher = new DocumentationFetcher();
+
 const HOMEPAGE_HTML = `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -581,6 +592,7 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
           <a href="#services">Services</a>
           <a href="#process">Process</a>
           <a href="#work">Work</a>
+          <a href="#loom-lang">Loom Lang</a>
           <a href="#contact">Contact</a>
         </nav>
       </div>
@@ -785,6 +797,87 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
         </div>
       </section>
 
+      <section id="loom-lang">
+        <div class="section-header">
+          <span>Open Source</span>
+          <h2>Loom Lang — AI-Powered Automation Language</h2>
+          <p>
+            An experimental programming language that learns from your intent. Write declarative automation scripts
+            and let Loom figure out the implementation details.
+          </p>
+        </div>
+        <div class="card-grid">
+          <article class="card">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <h3>Declarative & AI-Driven</h3>
+            <p>
+              Describe what you want to achieve, not how to do it. Loom's AI core translates your intent into
+              executable code.
+            </p>
+          </article>
+          <article class="card">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <h3>Self-Learning</h3>
+            <p>
+              Loom analyzes your scripts to identify patterns and autonomously creates new commands, evolving with
+              your workflow.
+            </p>
+          </article>
+          <article class="card">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <h3>Permission-Based Security</h3>
+            <p>
+              Scripts must explicitly declare intent to access sensitive resources, preventing unexpected or
+              malicious behavior.
+            </p>
+          </article>
+        </div>
+        <div style="margin-top: 2rem; padding: 2rem; border-radius: 1.2rem; border: 1px solid rgba(56, 189, 248, 0.3); background: rgba(15, 23, 42, 0.6);">
+          <h3 style="margin-top: 0;">Download Loom Lang</h3>
+          <p style="opacity: 0.8; margin-bottom: 1.5rem;">
+            Get started with Loom by downloading the latest release for your platform:
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+            <a href="/downloads/loom-lang/latest/loom-linux-x64" class="primary-btn" download style="display: inline-block; text-decoration: none;">
+              Download for Linux
+            </a>
+            <a href="/downloads/loom-lang/latest/loom-macos-x64" class="primary-btn" download style="display: inline-block; text-decoration: none;">
+              Download for macOS
+            </a>
+            <a href="/downloads/loom-lang/latest/loom-windows-x64.exe" class="primary-btn" download style="display: inline-block; text-decoration: none;">
+              Download for Windows
+            </a>
+          </div>
+          <p style="margin-top: 1.5rem; font-size: 0.9rem; opacity: 0.7;">
+            Learn more and contribute on <a href="https://github.com/Tactic-Dev/loom-lang" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">GitHub</a>
+          </p>
+        </div>
+      </section>
+
       <section id="contact">
         <div class="section-header">
           <span>Get started</span>
@@ -936,42 +1029,183 @@ const okHeaders = new Headers({
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
-    if (request.method === 'POST' && url.pathname === '/contact') {
-      return handleContact(request);
-    }
-
-    if (request.method === 'GET' || request.method === 'HEAD') {
-      if (request.method === 'HEAD') {
-        return new Response(null, { status: 200, headers: okHeaders });
+      if (request.method === 'POST' && url.pathname === '/contact') {
+        return handleContact(request);
       }
-      return new Response(HOMEPAGE_HTML, { status: 200, headers: okHeaders });
-    }
 
-    return new Response('Not found', { status: 404 });
+      // Handle loom-lang downloads
+      if (request.method === 'GET' && url.pathname.startsWith('/downloads/loom-lang/')) {
+        return handleLoomDownload(request, env);
+      }
+
+      // Error reporting endpoint
+      if (request.method === 'GET' && url.pathname === '/api/errors') {
+        return handleErrorReport(request);
+      }
+
+      if (request.method === 'GET' || request.method === 'HEAD') {
+        if (request.method === 'HEAD') {
+          return new Response(null, { status: 200, headers: okHeaders });
+        }
+        return new Response(HOMEPAGE_HTML, { status: 200, headers: okHeaders });
+      }
+
+      return new Response('Not found', { status: 404 });
+    } catch (error) {
+      // Track any unhandled errors
+      const err = error instanceof Error ? error : new Error(String(error));
+      const record = errorTracker.track(err, { path: new URL(request.url).pathname });
+      
+      // If this error is frequent, log documentation
+      if (errorTracker.isFrequent(record.fingerprint)) {
+        console.warn(`Frequent error detected (${record.count} occurrences):`, record.message);
+        
+        // Fetch and log documentation
+        const docs = await docFetcher.fetchDocumentation(record);
+        if (docs.length > 0) {
+          console.log('Relevant documentation:');
+          docs.slice(0, 3).forEach(doc => {
+            console.log(`- ${doc.source}: ${doc.url}`);
+          });
+        }
+      }
+      
+      return new Response('Internal server error', { status: 500 });
+    }
   }
-} satisfies ExportedHandler;
+} satisfies ExportedHandler<Env>;
 
 async function handleContact(request: Request): Promise<Response> {
-  const formData = await request.formData().catch(() => null);
-  if (!formData) {
+  try {
+    const formData = await request.formData().catch(() => null);
+    if (!formData) {
+      return new Response('Please complete all fields correctly.', { status: 400 });
+    }
+
+    const honeypot = String(formData.get('hp_field') || '').trim();
+    if (honeypot) {
+      return new Response('Thanks — we will reply shortly.', { status: 200 });
+    }
+
+    const name = String(formData.get('name') || '').trim();
+    const email = String(formData.get('email') || '').trim();
+    const message = String(formData.get('message') || '').trim();
+
+    const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    if (!name || !message || !emailRegex.test(email)) {
+      return new Response('Please complete all fields correctly.', { status: 422 });
+    }
+
+    return new Response('Thanks — we will reply shortly.', { status: 200 });
+  } catch (error) {
+    // Track contact form errors
+    const err = error instanceof Error ? error : new Error(String(error));
+    const record = errorTracker.track(err, { handler: 'contact' });
+    
+    // If frequent, fetch documentation
+    if (errorTracker.isFrequent(record.fingerprint)) {
+      console.warn(`Frequent contact form error (${record.count} occurrences):`, record.message);
+      const docs = await docFetcher.fetchDocumentation(record);
+      if (docs.length > 0) {
+        console.log('Suggested documentation:');
+        docs.slice(0, 3).forEach(doc => console.log(`- ${doc.source}: ${doc.url}`));
+      }
+    }
+    
     return new Response('Please complete all fields correctly.', { status: 400 });
   }
+}
 
-  const honeypot = String(formData.get('hp_field') || '').trim();
-  if (honeypot) {
-    return new Response('Thanks — we will reply shortly.', { status: 200 });
+async function handleLoomDownload(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const path = url.pathname.replace('/downloads/loom-lang/', '');
+
+  // Supported downloads
+  const validPaths = [
+    'latest/loom-linux-x64',
+    'latest/loom-macos-x64',
+    'latest/loom-windows-x64.exe'
+  ];
+
+  if (!validPaths.includes(path)) {
+    return new Response('Not found', { status: 404 });
   }
 
-  const name = String(formData.get('name') || '').trim();
-  const email = String(formData.get('email') || '').trim();
-  const message = String(formData.get('message') || '').trim();
+  try {
+    const r2Key = `downloads/loom-lang/${path}`;
+    const object = await env.ASSETS.get(r2Key);
 
-  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-  if (!name || !message || !emailRegex.test(email)) {
-    return new Response('Please complete all fields correctly.', { status: 422 });
+    if (!object) {
+      return new Response('File not found', { status: 404 });
+    }
+
+    const headers = new Headers({
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${path.split('/').pop()}"`,
+      'Cache-Control': 'public, max-age=3600',
+      'ETag': object.httpEtag
+    });
+
+    if (object.size) {
+      headers.set('Content-Length', object.size.toString());
+    }
+
+    return new Response(object.body, { status: 200, headers });
+  } catch (error) {
+    // Track R2 errors
+    const err = error instanceof Error ? error : new Error(String(error));
+    const record = errorTracker.track(err, { handler: 'loom-download', path });
+    
+    console.error('Error fetching from R2:', error);
+    
+    // If frequent, fetch documentation
+    if (errorTracker.isFrequent(record.fingerprint)) {
+      console.warn(`Frequent R2 error (${record.count} occurrences):`, record.message);
+      const docs = await docFetcher.fetchDocumentation(record);
+      if (docs.length > 0) {
+        console.log('Suggested documentation:');
+        docs.slice(0, 3).forEach(doc => console.log(`- ${doc.source}: ${doc.url}`));
+      }
+    }
+    
+    return new Response('Internal server error', { status: 500 });
   }
+}
 
-  return new Response('Thanks — we will reply shortly.', { status: 200 });
+/**
+ * Handle error reporting endpoint
+ * Returns all tracked errors with documentation links
+ */
+function handleErrorReport(request: Request): Response {
+  const url = new URL(request.url);
+  const showAll = url.searchParams.get('all') === 'true';
+  
+  const errors = showAll ? errorTracker.getAllErrors() : errorTracker.getFrequentErrors();
+  
+  const report = {
+    timestamp: new Date().toISOString(),
+    threshold: 3,
+    totalErrors: errorTracker.getAllErrors().length,
+    frequentErrors: errorTracker.getFrequentErrors().length,
+    errors: errors.map(error => ({
+      fingerprint: error.fingerprint,
+      message: error.message,
+      count: error.count,
+      firstSeen: new Date(error.firstSeen).toISOString(),
+      lastSeen: new Date(error.lastSeen).toISOString(),
+      context: error.context,
+      isFrequent: error.count >= 3
+    }))
+  };
+  
+  return new Response(JSON.stringify(report, null, 2), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    }
+  });
 }

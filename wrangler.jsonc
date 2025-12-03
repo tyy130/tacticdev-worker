@@ -1,7 +1,8 @@
 {
   "name": "tacticdev-site",
-  "main": "src/worker.ts",
+  "main": "src/index.ts",
   "compatibility_date": "2024-10-01",
+  "compatibility_flags": ["nodejs_compat"],
   "account_id": "450c0f114d19457f974bafc029eafef3",
 
   "r2_buckets": [
