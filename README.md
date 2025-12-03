@@ -1,12 +1,23 @@
-# tacticdev-worker (monorepo)
+# TacticDev Worker
 
-This repository contains the backend and chat application code for the tacticdev project.
+High-performance Cloudflare Workers-based marketing site for TacticDev - delivering lightning-fast, edge-optimized web experiences for ambitious founders and product teams.
 
 ## Features
 
 - **Marketing Site**: Serves the TacticDev marketing website
 - **Contact Form**: Handles customer inquiries
 - **Loom Lang Distribution**: Provides download access to Loom Lang binaries
+- **Error Tracking & Documentation**: Automatically identifies frequent errors and provides relevant documentation links
+
+## Error Tracking System
+
+The worker includes an intelligent error tracking system that:
+- Identifies errors that occur frequently (configurable threshold)
+- Automatically searches for relevant documentation from Cloudflare, MDN, and Stack Overflow
+- Provides an API endpoint (`/api/errors`) to view error reports
+- Logs documentation links when frequent errors are detected
+
+See [ERROR-TRACKING.md](ERROR-TRACKING.md) for detailed documentation.
 
 ## Loom Lang
 
@@ -21,8 +32,17 @@ See [LOOM-LANG.md](LOOM-LANG.md) for details on the build and distribution proce
 
 ## Note on the static site
 
-The static marketing site has been split into its own repository: [tacticdev-site](https://github.com/tyy130/tacticdev-site).
+TacticDev is a product development agency that designs and ships digital products for founders who need to move fast without breaking quality. We provide:
 
-The site was moved as a clean split (no preserved history) and is now maintained under that repository.
+- **Product Strategy Sprints**: Two-week intensives to discover and align your product vision
+- **Design Systems & Research**: Research-driven, scalable design experiences
+- **Full-Stack Engineering**: Modern web apps with automated QA and DevOps
 
 If you manage deployments or CI for the site, please use the `tacticdev-site` repository. This monorepo focuses on the worker/chat services.
+
+## Repository Maintenance
+
+This repository includes automation to archive unused GitHub repositories. See [docs/ARCHIVAL.md](docs/ARCHIVAL.md) for details on:
+- Automatic archival of repositories not updated in 12 months with zero stars
+- How to manually trigger archival
+- How to customize the archival criteria

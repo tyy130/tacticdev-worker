@@ -1,7 +1,13 @@
+import { ErrorTracker, DocumentationFetcher } from './error-tracker';
+
 interface Env {
   ASSETS: R2Bucket;
   BUCKET_PREFIX: string;
 }
+
+// Global error tracker instance (in production, use Durable Objects or KV)
+const errorTracker = new ErrorTracker(3); // Threshold of 3 occurrences
+const docFetcher = new DocumentationFetcher();
 
 const HOMEPAGE_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -13,6 +19,26 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
       name="description"
       content="TacticDev designs and ships digital products for founders who need to move fast without breaking quality."
     />
+    
+    <!-- Open Graph / Social Media Meta Tags -->
+    <!-- Note: og-image.png should be 1200x630px and served from static assets -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tacticdev.com/" />
+    <meta property="og:title" content="TacticDev · High-velocity product teams for ambitious founders" />
+    <meta property="og:description" content="We design, build, and launch digital products for venture-backed startups that need to move fast without compromising craft." />
+    <meta property="og:image" content="https://tacticdev.com/og-image.png" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@tacticdev" />
+    <meta name="twitter:title" content="TacticDev · High-velocity product teams for ambitious founders" />
+    <meta name="twitter:description" content="We design, build, and launch digital products for venture-backed startups that need to move fast without compromising craft." />
+    <meta name="twitter:image" content="https://tacticdev.com/og-image.png" />
+    
+    <!-- Additional Meta Tags -->
+    <meta name="author" content="TacticDev" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://tacticdev.com/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -370,9 +396,98 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
       footer {
         margin-top: 4rem;
         padding: 2rem 1.5rem 3rem;
-        text-align: center;
-        opacity: 0.65;
+        border-top: 1px solid rgba(148, 163, 184, 0.15);
+      }
+
+      .footer-container {
+        max-width: 1080px;
+        margin: 0 auto;
+        display: grid;
+        gap: 2rem;
+      }
+
+      .footer-section {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .footer-section h4 {
         font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin: 0;
+        opacity: 0.6;
+        font-weight: 600;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        font-size: 0.9rem;
+      }
+
+      .footer-links a {
+        opacity: 0.75;
+        transition: opacity 0.2s ease;
+      }
+
+      .footer-links a:hover,
+      .footer-links a:focus {
+        opacity: 1;
+      }
+
+      .social-links {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .social-links a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.5);
+        font-size: 0.85rem;
+        opacity: 0.8;
+        transition: all 0.2s ease;
+      }
+
+      .social-links a:hover,
+      .social-links a:focus {
+        opacity: 1;
+        border-color: rgba(56, 189, 248, 0.4);
+        transform: translateY(-1px);
+      }
+
+      .social-links svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+
+      .footer-about {
+        font-size: 0.9rem;
+        opacity: 0.7;
+        line-height: 1.6;
+        max-width: 40rem;
+      }
+
+      .footer-bottom {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.15);
+        text-align: center;
+        opacity: 0.6;
+        font-size: 0.85rem;
+      }
+
+      @media (min-width: 768px) {
+        .footer-container {
+          grid-template-columns: 1.5fr 1fr 1fr;
+        }
       }
 
       @media (max-width: 900px) {
@@ -805,7 +920,58 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
       </section>
     </main>
 
-    <footer>© ${new Date().getFullYear()} TacticDev. Built for the founders shipping what’s next.</footer>
+    <footer>
+      <div class="footer-container">
+        <div class="footer-section">
+          <h4>About TacticDev</h4>
+          <p class="footer-about">
+            High-velocity product teams for ambitious founders. We design, build, and launch digital products for 
+            venture-backed startups that need to move fast without compromising craft.
+          </p>
+        </div>
+
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <div class="footer-links">
+            <a href="#services">Services</a>
+            <a href="#process">Process</a>
+            <a href="#work">Work</a>
+            <a href="#contact">Contact</a>
+          </div>
+        </div>
+
+        <div class="footer-section">
+          <h4>Connect</h4>
+          <div class="social-links" role="list">
+            <a href="https://github.com/tyy130" target="_blank" rel="noopener noreferrer" aria-label="GitHub" role="listitem">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+              </svg>
+              GitHub
+            </a>
+            <a href="https://linkedin.com/company/tacticdev" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" role="listitem">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+              LinkedIn
+            </a>
+            <a href="https://twitter.com/tacticdev" target="_blank" rel="noopener noreferrer" aria-label="Twitter/X" role="listitem">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              Twitter
+            </a>
+          </div>
+          <div class="footer-links" style="margin-top: 0.75rem;">
+            <a href="mailto:hello@tacticdev.com">hello@tacticdev.com</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        © ${new Date().getFullYear()} TacticDev. Built for the founders shipping what's next.
+      </div>
+    </footer>
 
     <script>
       const nav = document.getElementById('site-nav');
@@ -863,49 +1029,94 @@ const okHeaders = new Headers({
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
 
-    if (request.method === 'POST' && url.pathname === '/contact') {
-      return handleContact(request);
-    }
-
-    // Handle loom-lang downloads
-    if (request.method === 'GET' && url.pathname.startsWith('/downloads/loom-lang/')) {
-      return handleLoomDownload(request, env);
-    }
-
-    if (request.method === 'GET' || request.method === 'HEAD') {
-      if (request.method === 'HEAD') {
-        return new Response(null, { status: 200, headers: okHeaders });
+      if (request.method === 'POST' && url.pathname === '/contact') {
+        return handleContact(request);
       }
-      return new Response(HOMEPAGE_HTML, { status: 200, headers: okHeaders });
-    }
 
-    return new Response('Not found', { status: 404 });
+      // Handle loom-lang downloads
+      if (request.method === 'GET' && url.pathname.startsWith('/downloads/loom-lang/')) {
+        return handleLoomDownload(request, env);
+      }
+
+      // Error reporting endpoint
+      if (request.method === 'GET' && url.pathname === '/api/errors') {
+        return handleErrorReport(request);
+      }
+
+      if (request.method === 'GET' || request.method === 'HEAD') {
+        if (request.method === 'HEAD') {
+          return new Response(null, { status: 200, headers: okHeaders });
+        }
+        return new Response(HOMEPAGE_HTML, { status: 200, headers: okHeaders });
+      }
+
+      return new Response('Not found', { status: 404 });
+    } catch (error) {
+      // Track any unhandled errors
+      const err = error instanceof Error ? error : new Error(String(error));
+      const record = errorTracker.track(err, { path: new URL(request.url).pathname });
+      
+      // If this error is frequent, log documentation
+      if (errorTracker.isFrequent(record.fingerprint)) {
+        console.warn(`Frequent error detected (${record.count} occurrences):`, record.message);
+        
+        // Fetch and log documentation
+        const docs = await docFetcher.fetchDocumentation(record);
+        if (docs.length > 0) {
+          console.log('Relevant documentation:');
+          docs.slice(0, 3).forEach(doc => {
+            console.log(`- ${doc.source}: ${doc.url}`);
+          });
+        }
+      }
+      
+      return new Response('Internal server error', { status: 500 });
+    }
   }
 } satisfies ExportedHandler<Env>;
 
 async function handleContact(request: Request): Promise<Response> {
-  const formData = await request.formData().catch(() => null);
-  if (!formData) {
+  try {
+    const formData = await request.formData().catch(() => null);
+    if (!formData) {
+      return new Response('Please complete all fields correctly.', { status: 400 });
+    }
+
+    const honeypot = String(formData.get('hp_field') || '').trim();
+    if (honeypot) {
+      return new Response('Thanks — we will reply shortly.', { status: 200 });
+    }
+
+    const name = String(formData.get('name') || '').trim();
+    const email = String(formData.get('email') || '').trim();
+    const message = String(formData.get('message') || '').trim();
+
+    const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    if (!name || !message || !emailRegex.test(email)) {
+      return new Response('Please complete all fields correctly.', { status: 422 });
+    }
+
+    return new Response('Thanks — we will reply shortly.', { status: 200 });
+  } catch (error) {
+    // Track contact form errors
+    const err = error instanceof Error ? error : new Error(String(error));
+    const record = errorTracker.track(err, { handler: 'contact' });
+    
+    // If frequent, fetch documentation
+    if (errorTracker.isFrequent(record.fingerprint)) {
+      console.warn(`Frequent contact form error (${record.count} occurrences):`, record.message);
+      const docs = await docFetcher.fetchDocumentation(record);
+      if (docs.length > 0) {
+        console.log('Suggested documentation:');
+        docs.slice(0, 3).forEach(doc => console.log(`- ${doc.source}: ${doc.url}`));
+      }
+    }
+    
     return new Response('Please complete all fields correctly.', { status: 400 });
   }
-
-  const honeypot = String(formData.get('hp_field') || '').trim();
-  if (honeypot) {
-    return new Response('Thanks — we will reply shortly.', { status: 200 });
-  }
-
-  const name = String(formData.get('name') || '').trim();
-  const email = String(formData.get('email') || '').trim();
-  const message = String(formData.get('message') || '').trim();
-
-  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-  if (!name || !message || !emailRegex.test(email)) {
-    return new Response('Please complete all fields correctly.', { status: 422 });
-  }
-
-  return new Response('Thanks — we will reply shortly.', { status: 200 });
 }
 
 async function handleLoomDownload(request: Request, env: Env): Promise<Response> {
@@ -944,7 +1155,57 @@ async function handleLoomDownload(request: Request, env: Env): Promise<Response>
 
     return new Response(object.body, { status: 200, headers });
   } catch (error) {
+    // Track R2 errors
+    const err = error instanceof Error ? error : new Error(String(error));
+    const record = errorTracker.track(err, { handler: 'loom-download', path });
+    
     console.error('Error fetching from R2:', error);
+    
+    // If frequent, fetch documentation
+    if (errorTracker.isFrequent(record.fingerprint)) {
+      console.warn(`Frequent R2 error (${record.count} occurrences):`, record.message);
+      const docs = await docFetcher.fetchDocumentation(record);
+      if (docs.length > 0) {
+        console.log('Suggested documentation:');
+        docs.slice(0, 3).forEach(doc => console.log(`- ${doc.source}: ${doc.url}`));
+      }
+    }
+    
     return new Response('Internal server error', { status: 500 });
   }
+}
+
+/**
+ * Handle error reporting endpoint
+ * Returns all tracked errors with documentation links
+ */
+function handleErrorReport(request: Request): Response {
+  const url = new URL(request.url);
+  const showAll = url.searchParams.get('all') === 'true';
+  
+  const errors = showAll ? errorTracker.getAllErrors() : errorTracker.getFrequentErrors();
+  
+  const report = {
+    timestamp: new Date().toISOString(),
+    threshold: 3,
+    totalErrors: errorTracker.getAllErrors().length,
+    frequentErrors: errorTracker.getFrequentErrors().length,
+    errors: errors.map(error => ({
+      fingerprint: error.fingerprint,
+      message: error.message,
+      count: error.count,
+      firstSeen: new Date(error.firstSeen).toISOString(),
+      lastSeen: new Date(error.lastSeen).toISOString(),
+      context: error.context,
+      isFrequent: error.count >= 3
+    }))
+  };
+  
+  return new Response(JSON.stringify(report, null, 2), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    }
+  });
 }
