@@ -1,6 +1,6 @@
-# tacticdev-worker (monorepo)
+# TacticDev Worker
 
-This repository contains the backend and chat application code for the tacticdev project.
+High-performance Cloudflare Workers-based marketing site for TacticDev - delivering lightning-fast, edge-optimized web experiences for ambitious founders and product teams.
 
 ## Features
 
@@ -32,9 +32,11 @@ See [LOOM-LANG.md](LOOM-LANG.md) for details on the build and distribution proce
 
 ## Note on the static site
 
-The static marketing site has been split into its own repository: [tacticdev-site](https://github.com/tyy130/tacticdev-site).
+TacticDev is a product development agency that designs and ships digital products for founders who need to move fast without breaking quality. We provide:
 
-The site was moved as a clean split (no preserved history) and is now maintained under that repository.
+- **Product Strategy Sprints**: Two-week intensives to discover and align your product vision
+- **Design Systems & Research**: Research-driven, scalable design experiences
+- **Full-Stack Engineering**: Modern web apps with automated QA and DevOps
 
 If you manage deployments or CI for the site, please use the `tacticdev-site` repository. This monorepo focuses on the worker/chat services.
 
