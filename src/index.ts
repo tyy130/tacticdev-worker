@@ -1,8 +1,8 @@
 import { ErrorTracker, DocumentationFetcher } from './error-tracker';
 
 interface Env {
-  ASSETS: R2Bucket;
-  BUCKET_PREFIX: string;
+	ASSETS: R2Bucket;
+	BUCKET_PREFIX: string;
 }
 
 // Global error tracker instance (in production, use Durable Objects or KV)
@@ -1022,157 +1022,263 @@ const HOMEPAGE_HTML = `<!DOCTYPE html>
   </body>
 </html>`;
 
+const JUSTIN_WILHELM_LINKS_HTML = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Justin Wilhelm · Links</title>
+    <meta name="description" content="Official links for Justin Wilhelm." />
+    <link rel="canonical" href="https://tacticdev.com/justin-wilhelm" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: #0f172a;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #ef4444;
+        --accent-strong: #b91c1c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        font-family: Inter, "Segoe UI", Roboto, sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at top, rgba(239, 68, 68, 0.2), transparent 40%), var(--bg);
+      }
+
+      main {
+        width: min(100%, 30rem);
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 1rem;
+        padding: 1.75rem 1.25rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.875rem;
+      }
+
+      p {
+        margin: 0.65rem 0 1.5rem;
+        color: var(--muted);
+      }
+
+      ul {
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.75rem;
+        list-style: none;
+      }
+
+      .link-card {
+        display: block;
+        width: 100%;
+        padding: 0.9rem 1rem;
+        border-radius: 0.75rem;
+        text-decoration: none;
+        color: inherit;
+        font-weight: 600;
+        text-align: center;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        transition: transform 0.2s ease, filter 0.2s ease;
+      }
+
+      .link-card:hover,
+      .link-card:focus {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
+      }
+
+      .secondary {
+        background: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Justin Wilhelm</h1>
+      <p>Official links and social profiles.</p>
+      <ul>
+        <li>
+          <a class="link-card" href="https://instagram.com/justinwilhelmm" target="_blank" rel="noopener noreferrer" aria-label="Open Justin Wilhelm Instagram profile">Instagram</a>
+        </li>
+        <li>
+          <a class="link-card secondary" href="https://tacticdev.com/contact" target="_blank" rel="noopener noreferrer" aria-label="Open contact page">Contact</a>
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>`;
+
+const JUSTIN_WILHELM_LINKS_PATHS = new Set(['/justin-wilhelm', '/justin-wilhelm/', '/links/justin-wilhelm']);
+
 const okHeaders = new Headers({
-  'content-type': 'text/html; charset=utf-8',
-  'cache-control': 'public, max-age=60'
+	'content-type': 'text/html; charset=utf-8',
+	'cache-control': 'public, max-age=60',
 });
 
 export default {
-  async fetch(request, env, ctx): Promise<Response> {
-    try {
-      const url = new URL(request.url);
+	async fetch(request, env, ctx): Promise<Response> {
+		try {
+			const url = new URL(request.url);
 
-      if (request.method === 'POST' && url.pathname === '/contact') {
-        return handleContact(request);
-      }
+			if (request.method === 'POST' && url.pathname === '/contact') {
+				return handleContact(request);
+			}
 
-      // Handle loom-lang downloads
-      if (request.method === 'GET' && url.pathname.startsWith('/downloads/loom-lang/')) {
-        return handleLoomDownload(request, env);
-      }
+			// Handle loom-lang downloads
+			if (request.method === 'GET' && url.pathname.startsWith('/downloads/loom-lang/')) {
+				return handleLoomDownload(request, env);
+			}
 
-      // Error reporting endpoint
-      if (request.method === 'GET' && url.pathname === '/api/errors') {
-        return handleErrorReport(request);
-      }
+			// Error reporting endpoint
+			if (request.method === 'GET' && url.pathname === '/api/errors') {
+				return handleErrorReport(request);
+			}
 
-      if (request.method === 'GET' || request.method === 'HEAD') {
-        if (request.method === 'HEAD') {
-          return new Response(null, { status: 200, headers: okHeaders });
-        }
-        return new Response(HOMEPAGE_HTML, { status: 200, headers: okHeaders });
-      }
+			if (request.method === 'GET' || request.method === 'HEAD') {
+				if (JUSTIN_WILHELM_LINKS_PATHS.has(url.pathname)) {
+					if (request.method === 'HEAD') {
+						return new Response(null, { status: 200, headers: okHeaders });
+					}
+					return new Response(JUSTIN_WILHELM_LINKS_HTML, { status: 200, headers: okHeaders });
+				}
 
-      return new Response('Not found', { status: 404 });
-    } catch (error) {
-      // Track any unhandled errors
-      const err = error instanceof Error ? error : new Error(String(error));
-      const record = errorTracker.track(err, { path: new URL(request.url).pathname });
-      
-      // If this error is frequent, log documentation
-      if (errorTracker.isFrequent(record.fingerprint)) {
-        console.warn(`Frequent error detected (${record.count} occurrences):`, record.message);
-        
-        // Fetch and log documentation
-        const docs = await docFetcher.fetchDocumentation(record);
-        if (docs.length > 0) {
-          console.log('Relevant documentation:');
-          docs.slice(0, 3).forEach(doc => {
-            console.log(`- ${doc.source}: ${doc.url}`);
-          });
-        }
-      }
-      
-      return new Response('Internal server error', { status: 500 });
-    }
-  }
+				if (request.method === 'HEAD') {
+					return new Response(null, { status: 200, headers: okHeaders });
+				}
+				return new Response(HOMEPAGE_HTML, { status: 200, headers: okHeaders });
+			}
+
+			return new Response('Not found', { status: 404 });
+		} catch (error) {
+			// Track any unhandled errors
+			const err = error instanceof Error ? error : new Error(String(error));
+			const record = errorTracker.track(err, { path: new URL(request.url).pathname });
+
+			// If this error is frequent, log documentation
+			if (errorTracker.isFrequent(record.fingerprint)) {
+				console.warn(`Frequent error detected (${record.count} occurrences):`, record.message);
+
+				// Fetch and log documentation
+				const docs = await docFetcher.fetchDocumentation(record);
+				if (docs.length > 0) {
+					console.log('Relevant documentation:');
+					docs.slice(0, 3).forEach((doc) => {
+						console.log(`- ${doc.source}: ${doc.url}`);
+					});
+				}
+			}
+
+			return new Response('Internal server error', { status: 500 });
+		}
+	},
 } satisfies ExportedHandler<Env>;
 
 async function handleContact(request: Request): Promise<Response> {
-  try {
-    const formData = await request.formData().catch(() => null);
-    if (!formData) {
-      return new Response('Please complete all fields correctly.', { status: 400 });
-    }
+	try {
+		const formData = await request.formData().catch(() => null);
+		if (!formData) {
+			return new Response('Please complete all fields correctly.', { status: 400 });
+		}
 
-    const honeypot = String(formData.get('hp_field') || '').trim();
-    if (honeypot) {
-      return new Response('Thanks — we will reply shortly.', { status: 200 });
-    }
+		const honeypot = String(formData.get('hp_field') || '').trim();
+		if (honeypot) {
+			return new Response('Thanks — we will reply shortly.', { status: 200 });
+		}
 
-    const name = String(formData.get('name') || '').trim();
-    const email = String(formData.get('email') || '').trim();
-    const message = String(formData.get('message') || '').trim();
+		const name = String(formData.get('name') || '').trim();
+		const email = String(formData.get('email') || '').trim();
+		const message = String(formData.get('message') || '').trim();
 
-    const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-    if (!name || !message || !emailRegex.test(email)) {
-      return new Response('Please complete all fields correctly.', { status: 422 });
-    }
+		const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+		if (!name || !message || !emailRegex.test(email)) {
+			return new Response('Please complete all fields correctly.', { status: 422 });
+		}
 
-    return new Response('Thanks — we will reply shortly.', { status: 200 });
-  } catch (error) {
-    // Track contact form errors
-    const err = error instanceof Error ? error : new Error(String(error));
-    const record = errorTracker.track(err, { handler: 'contact' });
-    
-    // If frequent, fetch documentation
-    if (errorTracker.isFrequent(record.fingerprint)) {
-      console.warn(`Frequent contact form error (${record.count} occurrences):`, record.message);
-      const docs = await docFetcher.fetchDocumentation(record);
-      if (docs.length > 0) {
-        console.log('Suggested documentation:');
-        docs.slice(0, 3).forEach(doc => console.log(`- ${doc.source}: ${doc.url}`));
-      }
-    }
-    
-    return new Response('Please complete all fields correctly.', { status: 400 });
-  }
+		return new Response('Thanks — we will reply shortly.', { status: 200 });
+	} catch (error) {
+		// Track contact form errors
+		const err = error instanceof Error ? error : new Error(String(error));
+		const record = errorTracker.track(err, { handler: 'contact' });
+
+		// If frequent, fetch documentation
+		if (errorTracker.isFrequent(record.fingerprint)) {
+			console.warn(`Frequent contact form error (${record.count} occurrences):`, record.message);
+			const docs = await docFetcher.fetchDocumentation(record);
+			if (docs.length > 0) {
+				console.log('Suggested documentation:');
+				docs.slice(0, 3).forEach((doc) => console.log(`- ${doc.source}: ${doc.url}`));
+			}
+		}
+
+		return new Response('Please complete all fields correctly.', { status: 400 });
+	}
 }
 
 async function handleLoomDownload(request: Request, env: Env): Promise<Response> {
-  const url = new URL(request.url);
-  const path = url.pathname.replace('/downloads/loom-lang/', '');
+	const url = new URL(request.url);
+	const path = url.pathname.replace('/downloads/loom-lang/', '');
 
-  // Supported downloads
-  const validPaths = [
-    'latest/loom-linux-x64',
-    'latest/loom-macos-x64',
-    'latest/loom-windows-x64.exe'
-  ];
+	// Supported downloads
+	const validPaths = ['latest/loom-linux-x64', 'latest/loom-macos-x64', 'latest/loom-windows-x64.exe'];
 
-  if (!validPaths.includes(path)) {
-    return new Response('Not found', { status: 404 });
-  }
+	if (!validPaths.includes(path)) {
+		return new Response('Not found', { status: 404 });
+	}
 
-  try {
-    const r2Key = `downloads/loom-lang/${path}`;
-    const object = await env.ASSETS.get(r2Key);
+	try {
+		const r2Key = `downloads/loom-lang/${path}`;
+		const object = await env.ASSETS.get(r2Key);
 
-    if (!object) {
-      return new Response('File not found', { status: 404 });
-    }
+		if (!object) {
+			return new Response('File not found', { status: 404 });
+		}
 
-    const headers = new Headers({
-      'Content-Type': 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${path.split('/').pop()}"`,
-      'Cache-Control': 'public, max-age=3600',
-      'ETag': object.httpEtag
-    });
+		const headers = new Headers({
+			'Content-Type': 'application/octet-stream',
+			'Content-Disposition': `attachment; filename="${path.split('/').pop()}"`,
+			'Cache-Control': 'public, max-age=3600',
+			ETag: object.httpEtag,
+		});
 
-    if (object.size) {
-      headers.set('Content-Length', object.size.toString());
-    }
+		if (object.size) {
+			headers.set('Content-Length', object.size.toString());
+		}
 
-    return new Response(object.body, { status: 200, headers });
-  } catch (error) {
-    // Track R2 errors
-    const err = error instanceof Error ? error : new Error(String(error));
-    const record = errorTracker.track(err, { handler: 'loom-download', path });
-    
-    console.error('Error fetching from R2:', error);
-    
-    // If frequent, fetch documentation
-    if (errorTracker.isFrequent(record.fingerprint)) {
-      console.warn(`Frequent R2 error (${record.count} occurrences):`, record.message);
-      const docs = await docFetcher.fetchDocumentation(record);
-      if (docs.length > 0) {
-        console.log('Suggested documentation:');
-        docs.slice(0, 3).forEach(doc => console.log(`- ${doc.source}: ${doc.url}`));
-      }
-    }
-    
-    return new Response('Internal server error', { status: 500 });
-  }
+		return new Response(object.body, { status: 200, headers });
+	} catch (error) {
+		// Track R2 errors
+		const err = error instanceof Error ? error : new Error(String(error));
+		const record = errorTracker.track(err, { handler: 'loom-download', path });
+
+		console.error('Error fetching from R2:', error);
+
+		// If frequent, fetch documentation
+		if (errorTracker.isFrequent(record.fingerprint)) {
+			console.warn(`Frequent R2 error (${record.count} occurrences):`, record.message);
+			const docs = await docFetcher.fetchDocumentation(record);
+			if (docs.length > 0) {
+				console.log('Suggested documentation:');
+				docs.slice(0, 3).forEach((doc) => console.log(`- ${doc.source}: ${doc.url}`));
+			}
+		}
+
+		return new Response('Internal server error', { status: 500 });
+	}
 }
 
 /**
@@ -1180,32 +1286,32 @@ async function handleLoomDownload(request: Request, env: Env): Promise<Response>
  * Returns all tracked errors with documentation links
  */
 function handleErrorReport(request: Request): Response {
-  const url = new URL(request.url);
-  const showAll = url.searchParams.get('all') === 'true';
-  
-  const errors = showAll ? errorTracker.getAllErrors() : errorTracker.getFrequentErrors();
-  
-  const report = {
-    timestamp: new Date().toISOString(),
-    threshold: 3,
-    totalErrors: errorTracker.getAllErrors().length,
-    frequentErrors: errorTracker.getFrequentErrors().length,
-    errors: errors.map(error => ({
-      fingerprint: error.fingerprint,
-      message: error.message,
-      count: error.count,
-      firstSeen: new Date(error.firstSeen).toISOString(),
-      lastSeen: new Date(error.lastSeen).toISOString(),
-      context: error.context,
-      isFrequent: error.count >= 3
-    }))
-  };
-  
-  return new Response(JSON.stringify(report, null, 2), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache'
-    }
-  });
+	const url = new URL(request.url);
+	const showAll = url.searchParams.get('all') === 'true';
+
+	const errors = showAll ? errorTracker.getAllErrors() : errorTracker.getFrequentErrors();
+
+	const report = {
+		timestamp: new Date().toISOString(),
+		threshold: 3,
+		totalErrors: errorTracker.getAllErrors().length,
+		frequentErrors: errorTracker.getFrequentErrors().length,
+		errors: errors.map((error) => ({
+			fingerprint: error.fingerprint,
+			message: error.message,
+			count: error.count,
+			firstSeen: new Date(error.firstSeen).toISOString(),
+			lastSeen: new Date(error.lastSeen).toISOString(),
+			context: error.context,
+			isFrequent: error.count >= 3,
+		})),
+	};
+
+	return new Response(JSON.stringify(report, null, 2), {
+		status: 200,
+		headers: {
+			'Content-Type': 'application/json',
+			'Cache-Control': 'no-cache',
+		},
+	});
 }

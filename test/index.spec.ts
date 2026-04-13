@@ -30,12 +30,31 @@ describe('TacticDev marketing site worker', () => {
 
 		const request = new IncomingRequest('http://example.com/contact', {
 			method: 'POST',
-			body: form
+			body: form,
 		});
 
 		const response = await worker.fetch(request, env, createExecutionContext());
 		expect(response.status).toBe(200);
 		expect(await response.text()).toContain('Thanks');
+	});
+
+	it('serves Justin Wilhelm links page', async () => {
+		const request = new IncomingRequest('http://example.com/justin-wilhelm');
+		const response = await worker.fetch(request, env, createExecutionContext());
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get('content-type')).toBe('text/html; charset=utf-8');
+		const html = await response.text();
+		expect(html).toContain('Justin Wilhelm');
+		expect(html).toContain('instagram.com/justinwilhelmm');
+	});
+
+	it('serves Justin Wilhelm links page on links alias', async () => {
+		const request = new IncomingRequest('http://example.com/links/justin-wilhelm');
+		const response = await worker.fetch(request, env, createExecutionContext());
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get('content-type')).toBe('text/html; charset=utf-8');
 	});
 
 	it('returns 404 for invalid loom-lang download paths', async () => {
@@ -47,10 +66,10 @@ describe('TacticDev marketing site worker', () => {
 	it('provides error report endpoint', async () => {
 		const request = new IncomingRequest('http://example.com/api/errors');
 		const response = await worker.fetch(request, env, createExecutionContext());
-		
+
 		expect(response.status).toBe(200);
 		expect(response.headers.get('content-type')).toBe('application/json');
-		
+
 		const data = await response.json();
 		expect(data).toHaveProperty('timestamp');
 		expect(data).toHaveProperty('threshold');
@@ -63,7 +82,7 @@ describe('TacticDev marketing site worker', () => {
 	it('supports all parameter for error report', async () => {
 		const request = new IncomingRequest('http://example.com/api/errors?all=true');
 		const response = await worker.fetch(request, env, createExecutionContext());
-		
+
 		expect(response.status).toBe(200);
 		const data = await response.json();
 		expect(data).toHaveProperty('errors');
